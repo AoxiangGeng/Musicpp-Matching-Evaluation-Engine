@@ -1,0 +1,119 @@
+
+
+@import url(http://fonts.googleapis.com/css?family=Gloria+Hallelujah);
+ 
+@import url(http://fonts.googleapis.com/css?family=Open+Sans);
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
+
+
+#wavepitch_chart_container {
+  overflow-x: scrollbar;
+  overflow-y: hidden;
+}
+
+#wavepitch_chart_container #yaxis{
+  font-size: 8px;
+}
+
+#wavepitch_error_box {
+  display: none;
+}
+
+#wavepitch_overlay{
+  
+
+  position: absolute;
+  left=0;
+  top=0;
+  z-index: 20;
+  
+ background-color: rgba(0,0,0,0.5); 
+}
+
+.watchpitch_not_running{
+  
+
+}
+.watchpitch_running{
+  
+  
+  background-image: url('../pic/ajax-loader.gif') ;
+  background-position: 50% 50% ;
+  background-repeat: no-repeat;
+}
+
+#content_not_supported{
+	display: none;
+}
+
+
+#wavepitch_note_detail{
+  background-color: rgba(0,0,0,0.5); /*dim the background*/
+}
+
+.navbar{
+  background-color: purple;
+}
+
+.navbar .icon-bar{
+  background-color: white;
+}
+
+.navbar .navbar-nav a{
+  color: white;
+}
+
+.navbar-brand{
+  font-family: 'Gloria Hallelujah', cursive;
+  font-size:28px;
+  color: yellow;
+}
+
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  color: #555;
+}
+
+h1, .h1,
+h2, .h2,
+h3, .h3,
+h4, .h4,
+h5, .h5,
+h6, .h6 {
+  margin-top: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: normal;
+  color: #333;
+}
+

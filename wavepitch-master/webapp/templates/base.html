@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+    <title>WavePitch</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
+
+    <script data-main='/static/js/app/main.js'
+    src="/static/js/lib/require.js"></script>
+
+    <link rel="stylesheet" href="/static/css/wavepitch.css">
+
+  </head>
+	<body>
+	
+		<nav class="navbar navbar-static-top " role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed"
+						data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						<span class="sr-only">Toggle navigation</span> <span
+							class="icon-bar"></span> <span class="icon-bar"></span> <span
+							class="icon-bar"></span>
+					</button>
+	
+					<p class="navbar-brand">WavePitch</p>
+				</div>
+				<div class="collapse navbar-collapse"
+					id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav">
+						<li {% if active_page == "main" %} class="active" {% endif %}>
+						  <a href="/">Main</a>
+						</li>
+						<li {% if active_page == "about" %} class="active" {% endif %}>
+						  <a href="/about">About</a>
+						</li>
+					</ul>
+				</div>
+	
+    
+			</div>
+
+	
+		</nav>
+  
+
+	{% block content %} {% endblock %}
+
+
+
+  </body>
+</html>

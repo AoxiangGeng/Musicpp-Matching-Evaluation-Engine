@@ -3,7 +3,7 @@ from pitchogram import pitchogram_from_signal
 from wave_signal import Signal
 import cv2 as cv
 import wave
-ALLPITCH = 96
+ALLPITCH = 97
 class Draw_pic():
     def __init__(self,url,tempname):
         self.url = url
@@ -24,12 +24,18 @@ class Draw_pic():
     def energypic(self,threshhold,shadenum):
         """获取wav能量信息，绘制图片"""
         active_notes, note_names, note_numbers, time_values = self.__get_activenotes()
+        # print(active_notes)
+        # print(note_names)
+        # print(note_numbers)
         notesnum = len(active_notes)
         totallengh = len(time_values) * 20
-        img = np.zeros((96 * 4, totallengh, 3), np.uint8)
+        img = np.zeros((97 * 4, totallengh, 3), np.uint8)
         img[:,:,0] = 230
         img[:,:,1] = 245
         img[:,:,2] = 253
+
+        # for i in range(ALLPITCH-1):
+        #     cv.line(img, (0, (i+1)*4),(18, (i+1)*4),(0,0,255),1,8)
         active_notes.sort(key=lambda x: x['v'], reverse=True)
         threshholdnum = int(notesnum * threshhold)
         maxactive = active_notes[0]["v"]
@@ -37,23 +43,33 @@ class Draw_pic():
         # colorradio_b = (230 - 0) / (maxactive-minactive)
         colorradio_g = (245 - 0) / (maxactive-minactive)
         colorradio_r = (253 - 0) / (maxactive-minactive)
-        print(colorradio_r)
+        # print(colorradio_r)
         adjustnum = [0.9e-16,1.9e-16,2.9e-16,0.9e-16,1.9e-15,2.9e-15,0.9e-14,1.9e-14,2.9e-14,0.9e-13]
+        a = 0
         for i in range(threshholdnum):
+
+            # if active_notes[i]["t"]==0:
+            #     a+=1
+                # print(active_notes[i]["v"])
+                # print("===========")
+                # print(active_notes[i]["n"])
+                # print("------------")
+
             corlor_r = int(253 - (active_notes[i]["v"]-minactive)*(colorradio_r+adjustnum[shadenum]))
             corlor_g = int(245 - (active_notes[i]["v"]-minactive)*(colorradio_g+adjustnum[shadenum]))
             # corlor_b = int(230 - (active_notes[i]["v"]-minactive)*colorradio_b)
             cv.rectangle(img, (20 * (active_notes[i]["t"]), 4 * (96 - (active_notes[i]["n"]) - 1)),
-                                 (20 * (active_notes[i]["t"] + 1)-2, 4 * ((96 - (active_notes[i]["n"])))),
+                                 (20 * (active_notes[i]["t"]+1)-2, 4 * ((96 - (active_notes[i]["n"])))),
                                  (230, corlor_g, corlor_r), -1)
-#        cv.imshow("image",img)
-#        cv.imwrite("./{}".format(self.tempname),img)
+        # print(a)
+        # cv.imshow("image",img)
+        cv.imwrite("./{}".format(self.tempname),img)
         return totallengh
 
 if __name__ == '__main__':
-    url = "/Users/jiating/Documents/pythoncode/wavepitch/tp_cut.wav"
+    url = "/Users/jiating/Documents/pythoncode/wavepitch/sp_cut.wav"
     showpic = Draw_pic(url,"1.png")
-    showpic.energypic(0.6,6)
+    showpic.energypic(1,9)
     cv.waitKey(0)
     cv.destroyAllWindows()
 

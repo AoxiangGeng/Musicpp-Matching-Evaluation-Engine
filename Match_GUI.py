@@ -104,13 +104,15 @@ def input_wav2():
 #两个Button用于导入音频文件：       
 B1 = tk.Button(frame1,text='请选择sp_wav文件',command=input_wav1).place(anchor='w',x=200,y=170)
 B2 = tk.Button(frame2,text='请选择tp_wav文件',command=input_wav2).place(anchor='w',x=200,y=520)
+
 """
 Zoom
 """
+#I hope u will never use this function
 class LoadImage: 
     def __init__(self,root): 
      frame = tk.Frame(root) 
-     self.canvas = tk.Canvas(frame,width=1800,height=2000,scrollregion=(0,0,3500,3000)) 
+     self.canvas = tk.Canvas(frame,width=1800,height=2000,scrollregion=(0,0,3500,2000)) 
      self.hscroll = tk.Scrollbar(root,orient='horizontal',bd=2)
      self.hscroll.config(command=self.canvas.xview)
      self.canvas.config(xscrollcommand=self.hscroll.set)
@@ -162,6 +164,7 @@ def zoom():
     root.title("Crop Test") 
     App = LoadImage(root)
     root.mainloop() 
+    
 """
 设置Menu部分：
 """
@@ -300,7 +303,7 @@ def generate_specgram1():
     global length1
     showpic = app.Draw_pic(filename1,img1)
     #threshold:0-1; darkness:0-9
-    length1 = showpic.energypic(0.9,9)
+    length1 = showpic.energypic(1,9)
     #根据频谱图的长度调整canvas的窗口长度
     canvas1.config(scrollregion=(0,0,length1,8000))
     tempImage1 = tk.PhotoImage(file = img1)
@@ -314,7 +317,7 @@ def generate_specgram2():
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
     global tempImage2
     showpic = app.Draw_pic(filename2,img2)
-    length2 = showpic.energypic(0.9,9)
+    length2 = showpic.energypic(1,9)
     #根据频谱图的长度调整canvas的窗口长度
     canvas2.config(scrollregion=(0,0,length2,8000))
     tempImage2 = tk.PhotoImage(file = img2)

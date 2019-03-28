@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar 21 16:50:55 2019
+Musicpp Matching Evaluation Engine
 
-@author: alex
+@author: alex.Geng  brother.Nan
 """
 
 import tkinter as tk
@@ -12,13 +12,8 @@ import tkinter.filedialog
 import app
 import numpy as np
 from PIL import Image, ImageTk, ImageGrab 
-#import sys, os
-#import numpy as np
-#from pitchogram import pitchogram_from_signal
-#from wave_signal import Signal
-#import wave
-#import matplotlib as plt
-#sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+import threading
+import time
 
 """
 主体部分
@@ -78,12 +73,12 @@ def binary_search(array,t):
         print('Has reached the end of this audio file!')
         return array.index(array[height])
 
-    if distance1 < distance2 and distance1 <= 0.05:
+    if distance1 < distance2:
         return array.index(array[height])
-    elif distance2 <= distance1 and distance2 <= 0.05:
+    elif distance2 <= distance1:
         return array.index(array[low])
     else:
-        return None
+        pass
     
 #input函数用于导入音频文件,由用户选择文件，然后该函数获得文件的路径，将路径存储为filename1和filename2：
 def input_wav1():
@@ -209,28 +204,105 @@ window.config(menu=menubar)
 """
 #初始化播放环境：
 mixer.init()
-
+#设定time_sp & time_tp的初始值，确保单独播放sp.wav或者tp.wav时不会报错
+time_sp = 0.00
+time_tp = 0.00
+OFFSET1 = 0.00
+OFFSET2 = 0.00
+#设定定时器,用于实现tkinter的动态更新，只要开始播放音频文件，就会每隔0.01秒获取一次音频的播放时间点（这一句要考！）：
+is_sp_play = False
+def fun_timer1():
+    global time_sp
+    global time_tp
+    global is_sp_play
+    global OFFSET1
+    #获取音频的播放时间信息， time_sp单位为秒
+    #get_pos()----This gets the number of milliseconds that the music has
+    #been playing for. The returned time only represents how long the music
+    #has been playing; it does not take into account any starting 
+    #position offsets. 
+    time_sp = mixer.music.get_pos()/1000 + OFFSET1
+    sp_index = binary_search(match_sp,time_sp)
+    time_tp = float(match1[sp_index][1])
+    #根据sp时间调整scale位置：
+    S1.set(time_sp)
+    S2.set(time_tp)
+    #调整频谱图位置：
+    scale_selection1()
+    scale_selection2()
+    global timer1
+    #每隔0.1s执行一次线程：
+    if is_sp_play:
+        timer1 = threading.Timer(0.1, fun_timer1)
+        timer1.start()
+    else:
+        time.sleep(0.1)
+        timer1.cancel()
+        
 #用于sp的 播放，停止，暂停三个函数：
 def track_start1():
-    channel1.play(track1,loops = -1)
- 
+    global time_sp
+    global timer1
+    global is_sp_play
+    is_sp_play = True
+    mixer.music.load(filename1.strip('.wav')+'.mp3')
+    #播放：
+    mixer.music.play(0)
+    #启动定时器程序：
+    timer1 = threading.Timer(0,fun_timer1)
+    timer1.start()
+        
 def track_stop1():
-    channel1.stop()
-
-pause = False
+    global timer1
+    global time_sp
+    global time_tp
+    global is_sp_play
+    global OFFSET1
+    global OFFSET2
+    OFFSET1 = 0.00
+    OFFSET2 = 0.00
+    #关闭音频播放：
+    mixer.music.stop()
+    #停止定时器功能：
+    is_sp_play = False
+#    time.sleep(0)
+    timer1.cancel()
+    #归零
+    time_sp = 0.00
+    time_tp = 0.00
+    scale_selection1()
+    scale_selection2()
+    
+pause1 = False
 def track_pause1():
-    global pause
-    if pause == False:
-        channel1.pause()
-        pause = True
+    global pause1
+    global is_sp_play
+    global timer1
+    global origin_scale1
+    if pause1 == False:
+        mixer.music.pause()
+        pause1 = True
+        is_sp_play = False
+        time.sleep(0)
+        timer1.cancel()
     else:
-        channel1.unpause()
-        pause = False
+        mixer.music.rewind()
+        mixer.music.set_pos(time_sp)
+        mixer.music.unpause()
+        pause1 = False
+        is_sp_play = True
+        timer1 = threading.Timer(0.1, fun_timer1)
+        timer1.start()
 
-#sp命名为track1，并将channel1分配给它：
-channel1 = mixer.Channel(1)
-track1 = mixer.Sound(filename1)
+#pageup1和pagedown1函数控制canvas1画布进行前后翻动,N代表移动的像素值，1像素0.005s，20像素0.1s：
+def pageup1(n):
+    canvas1.xview(tk.SCROLL, n, tk.UNITS) 
 
+def pagedown1(n):
+    canvas1.xview(tk.SCROLL, -n, tk.UNITS)        
+
+#sp命名为track1：
+#track1 = mixer.music.load(filename1)
 #用于sp的 播放，停止，暂停三个按钮：
 start_button1 = tk.Button(frame1,command = track_start1,text = "Start")
 start_button1.place(anchor='w',x=200,y=190)
@@ -239,52 +311,147 @@ stop_button1.place(anchor='w',x=200,y=210)
 pause_button1 = tk.Button(frame1,command = track_pause1,text = "Pause")
 pause_button1.place(anchor='w',x=200,y=230)
 
-
+#设定定时器,用于实现tkinter的动态更新，只要开始播放音频文件，就会每隔0.01秒获取一次音频的播放时间点（这一句要考！）：
+is_tp_play = False
+def fun_timer2():
+    global time_tp
+    global time_sp
+    global is_tp_play
+    global OFFSET2
+    #获取音频的播放时间信息， time_tp单位为秒
+    time_tp = mixer.music.get_pos()/1000 +OFFSET2
+    tp_index = binary_search(match_tp,time_tp)
+    time_sp = float(match2[tp_index][1])
+    #根据tp时间调整scale位置：
+    S2.set(time_tp)
+    S1.set(time_sp)
+    #调整频谱图位置：
+    scale_selection1()
+    scale_selection2()
+    global timer2
+    #每隔0.1s执行一次线程：
+    if is_tp_play:
+        timer2 = threading.Timer(0.1, fun_timer2)
+        timer2.start()
+    else:
+        time.sleep(0.1)
+        timer2.cancel()
+    
 #用于tp的 播放，停止，暂停三个函数：
 def track_start2():
-    channel2.play(track2,loops = -1)
+    global time_tp
+    global timer2
+    global is_tp_play
+    is_tp_play = True
+    mixer.music.load(filename2.strip('.wav')+'.mp3')
+    #播放：
+    mixer.music.play(0)
+    #启动定时器程序：
+    timer2 = threading.Timer(0,fun_timer2)
+    timer2.start()
  
 def track_stop2():
-    channel2.stop()
+    global timer2
+    global time_sp
+    global time_tp
+    global is_tp_play
+    global OFFSET1
+    global OFFSET2
+    OFFSET1 = 0.00
+    OFFSET2 = 0.00
+    #关闭音频播放：
+    mixer.music.stop()
+    #停止定时器功能：
+    is_tp_play = False
+#    time.sleep(0)
+    timer2.cancel()
+    #归零
+    time_sp = 0.00
+    time_tp = 0.00
+    scale_selection1()
+    scale_selection2()
 
-pause = False
+pause2 = False
 def track_pause2():
-    global pause
-    if pause == False:
-        channel2.pause()
-        pause = True
+    global pause2
+    global is_tp_play
+    global timer2
+    global origin_scale2
+    if pause2 == False:
+        mixer.music.pause()
+        pause2 = True
+        is_tp_play = False
+        time.sleep(0)
+        timer2.cancel()
     else:
-        channel2.unpause()
-        pause = False
-
-#tp命名为track2，并将channel2分配给它：
-channel2 = mixer.Channel(2)
-track2 = mixer.Sound(filename2)
+        mixer.music.rewind()
+        mixer.music.set_pos(time_tp)
+        mixer.music.unpause()
+        pause2 = False
+        is_tp_play = True
+        timer2 = threading.Timer(0.1, fun_timer2)
+        timer2.start()
+        
+#pageup2和pagedown2函数控制canvas2画布进行前后翻动，N代表移动的像素值，1像素0.005s，20像素0.1s：：
+def pageup2(n):
+    canvas2.xview(tk.SCROLL, n, tk.UNITS) 
+def pagedown2(n):
+    canvas2.xview(tk.SCROLL, -n, tk.UNITS)   
+#tp命名为track2：
+#track2 = mixer.music.load(filename2)
 #用于tp的 播放，停止，暂停三个按钮：
-start_button2 = tk.Button(frame2,command = track_start1,text = "Start")
+start_button2 = tk.Button(frame2,command = track_start2,text = "Start")
 start_button2.place(anchor='w',x=200,y=540)
-stop_button2 = tk.Button(frame2,command = track_stop1,text = "Stop")
+stop_button2 = tk.Button(frame2,command = track_stop2,text = "Stop")
 stop_button2.place(anchor='w',x=200,y=560)
-pause_button2 = tk.Button(frame2,command = track_pause1,text = "Pause")
+pause_button2 = tk.Button(frame2,command = track_pause2,text = "Pause")
 pause_button2.place(anchor='w',x=200,y=580)
 
-
+#switch函数用于sp与tp之间的播放切换：
+#例如，播放sp时，按下sp的暂停键，然后按switch按钮，音频将从tp的对应位置开始播放
+def switch():
+    global OFFSET1
+    global OFFSET2
+    global is_sp_play
+    global is_tp_play
+    global pause1
+    global pause2
+    if pause1 == True:
+        OFFSET2 = time_tp
+        pause1 = False
+        is_tp_play = True
+        #重新load文件并播放，将会归零get_pos()的返回值，所以这里把time_tp的时间作为OFFSET2保存：
+        mixer.music.load(filename2.strip('.wav')+'.mp3')
+        mixer.music.play(0,time_tp)
+        #不要忘记重启计时器：
+        timer2 = threading.Timer(0.1, fun_timer2)
+        timer2.start()
+    elif pause2 == True:
+        OFFSET1 = time_sp
+        pause2 = False
+        is_sp_play = True
+        mixer.music.load(filename1.strip('.wav')+'.mp3')
+        mixer.music.play(0,time_sp)
+        timer1 = threading.Timer(0.1, fun_timer1)
+        timer1.start()
+    else:
+        pass
+        
+#switch按钮用于sp与tp之间的播放切换：
+switch_button = tk.Button(frame2,font=('Arial',18),width=7,height=2,command = switch,text = "切换",bg='green',fg='blue',relief='raised', bd=3)
+switch_button.place(anchor='w',x=200,y=410)
 """
 频谱图部分
 """
 
-
 #sp频谱图画布 canvas1:
-canvas1 = tk.Canvas(frame1,bg='gray',width=900,height=390,scrollregion=(0,0,20000,8000),xscrollincrement=0.1)
+canvas1 = tk.Canvas(frame1,bg='gray',width=900,height=390,scrollregion=(0,0,20000,8000),xscrollincrement=1)
 hbar1 = tk.Scrollbar(frame1,orient='horizontal',bd=0)
 hbar1.config(command=canvas1.xview)
 canvas1.config(xscrollcommand=hbar1.set)
 
-
-
-
 #tp频谱图画布 canvas2:
-canvas2 = tk.Canvas(frame2,bg='gray',width=900,height=390,scrollregion=(0,0,20000,8000),xscrollincrement=0.1)
+canvas2 = tk.Canvas(frame2,bg='gray',width=900,height=390,scrollregion=(0,0,20000,8000),xscrollincrement=1)
 hbar2 = tk.Scrollbar(frame2,orient='horizontal',bd=0)
 hbar2.config(command=canvas2.xview)
 canvas2.config(xscrollcommand=hbar2.set)
@@ -307,7 +474,7 @@ def generate_specgram1():
     #根据频谱图的长度调整canvas的窗口长度
     canvas1.config(scrollregion=(0,0,length1,8000))
     tempImage1 = tk.PhotoImage(file = img1)
-    canvas1.create_image(0, 194,anchor='w',image=tempImage1)
+    canvas1.create_image(450, 194,anchor='w',image=tempImage1)
 #    canvas1.show()
 #    canvas1.FigureCanvasTkAgg(tempImage1,master=frame1)
     
@@ -316,12 +483,13 @@ def generate_specgram2():
     global filename2
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
     global tempImage2
+    global length2
     showpic = app.Draw_pic(filename2,img2)
     length2 = showpic.energypic(1,9)
     #根据频谱图的长度调整canvas的窗口长度
     canvas2.config(scrollregion=(0,0,length2,8000))
     tempImage2 = tk.PhotoImage(file = img2)
-    canvas2.create_image(0, 194,anchor='w',image=tempImage2)
+    canvas2.create_image(450, 194,anchor='w',image=tempImage2)
 #    canvas2.show()
 #    canvas2.FigureCanvasTkAgg(tempImage2,master=frame2)
 
@@ -332,18 +500,14 @@ B_sp.place(anchor='w',x=200,y=250)
 B_tp.place(anchor='w',x=200,y=600)
 #canvas1.bind('<Button-1>',specgram1)
 #canvas2.bind('<KeyPress-p>',specgram2)
-#放置scrollbar-- hbar1 & hbar2至窗口底部，并铺满整个x轴:
-hbar2.pack(side='bottom',fill='x')
-hbar1.pack(side='bottom',fill='x')
-canvas1.place(anchor='w',x=350,y=340)
-canvas2.place(anchor='w',x=350,y=690)
+
 
 """
 Match部分
 """
 
 #match文件的默认地址：
-filename3 = 'sp_cut_tp_match.csv'
+filename3 = 'match.csv'
 
 var3 = tk.StringVar()
 var3.set('请选择match.csv文件')
@@ -357,111 +521,221 @@ def input_csv():
         var3.set("您没有选择任何文件")
         
 #提示导入match文件并显示其路径：        
-L4 = tk.Label(frame2, textvariable=var3,bg='blue',fg='white',font=('Arial',10),width=35,height=5).place(anchor='w',x=1270,y=320)
+L4 = tk.Label(frame2, textvariable=var3,bg='blue',fg='white',font=('Arial',10),width=35,height=5).place(anchor='w',x=1270,y=460)
 #放置按钮来实现input_csv功能：
 B3 = tk.Button(frame2,text='请选择match.csv文件',bg='blue',command=input_csv).place(anchor='w',x=1300,y=170)
 
 #设定函数，让 line1 和 line2 能随着match的数据在x方向上平移：
-match=[]
+match1=[]
+match2 = []
 match_sp = []
+match_tp = []
+
 def load_match():
     global line1
     global line2
+    global canvas3
     #根据filename3所制定的路径打开match文件并保存到列表match中，match是一个N*2的二维列表，每一行的第一个str表示sp的时间，第二个str表示tp的时间：
+    #match1对应sp在前的文件，match2对应tp在前的文件：
     with open(filename3,'r') as f:
         for line in f.readlines():
-            match.append(line.strip('\n').split(','))
-    for i in range(len(match)):
-        match_sp.append(match[i][0])
+            match1.append(line.strip('\n').split(','))
+    with open(filename3.strip('.csv')+'_reverse.csv','r') as g:
+        for line in g.readlines():
+            match2.append(line.strip('\n').split(','))
+    #将sp，tp的时间点分别保存为一维list，方便之后进行binary search：
+    for i in range(len(match1)):
+        match_sp.append(match1[i][0])
+    for j in range(len(match2)):
+        match_tp.append(match2[j][0])
     #每个画布canvas都有一套独立的坐标系，原点（0，0）在画布左上角，根据这里画布宽度的设定，左下角坐标为（0，300）
-    #放置随match数据移动的竖线 line1 & line2,初始位置过点（0，0）和（0，300）：
-    line1 = canvas1.create_line(0,0,0,390,width=1)
-    line2 = canvas2.create_line(0,0,0,390,width=1)
-    #根据match文件中sp音频的长度来设定滚动条S1的长度：
-    S1.config(to=(float(match[-1][0])+1))
-    
-#设定函数，从Entry中读取数字值，来调整match时间点：
-def set_match():
+    #当按下‘开始评估’键时，将在画布正中间生成一条竖线，位置固定,其位置与频谱图的初始位置重合：
+    canvas3 = tk.Canvas(frame1,width=1,height=740,bg='black').place(anchor='w',x=800,y=512)
+    #根据match文件中音频的长度来设定滚动条S1,S2的长度：
+    S1.config(to=(float(match1[-1][0])+1))
+    S2.config(to=(float(match2[-1][0])+1))
+
+#设定函数，从Entry中读取数字值，来调整scale时间点：
+def set_match1():
+    global time_sp
+    global time_tp
+    global OFFSET1
     if E1.get() != '':
-         S1.set(E1.get()) 
+         S1.set(E1.get())
+         OFFSET1 += float(E1.get()) - time_sp
+         time_sp = float(E1.get())
+         sp_index = binary_search(match_sp,time_sp)
+         time_tp = float(match1[sp_index][1])
+         scale_selection1()
+         scale_selection2()
+
+def set_match2():
+    global time_tp
+    global time_sp
+    global OFFSET2
+    if E2.get() != '':
+         S2.set(E2.get()) 
+         OFFSET2 += float(E2.get()) - time_tp
+         time_tp = float(E2.get())
+         tp_index = binary_search(match_tp,time_tp)
+         time_sp = float(match2[tp_index][1])
+         scale_selection1()
+         scale_selection2()
          
-        
+#该函数用于判断数字num是否在lis【0】--lis【1】的范围内
+def within(num,lis):
+    if lis[0] <= num and lis[1] >= num:
+        return True
+    else:
+        return False        
+
+#定义函数set_scale用于拖动进度条来选择音频播放位置：
+def set_scale1(scale1):
+    global time_sp
+    global time_tp
+    global OFFSET1
+    if pause1 == True:
+        OFFSET1 += float(S1.get()) - time_sp
+        time_sp = float(S1.get())
+        sp_index = binary_search(match_sp,time_sp)
+        time_tp = float(match1[sp_index][1])
+        scale_selection1()
+        scale_selection2()
+    else:
+        pass
+
+def set_scale2(scale2):
+    global time_sp
+    global time_tp
+    global OFFSET2
+    if pause2 == True:
+        OFFSET2 += float(S2.get()) - time_tp
+        time_tp = float(S2.get())
+        tp_index = binary_search(match_tp,time_tp)
+        time_sp = float(match2[tp_index][1])
+        scale_selection1()
+        scale_selection2()
+    else:
+        pass
+ 
 #设定函数，用来获取scale的值并调整match时间点,1像素对应0.005s：
-origin_scale = 0.00
-def scale_selection(scale_var):
-    global origin_scale
-    offset = (var4.get() - origin_scale)//0.005
-    canvas1.move(line1,offset,0)
-    origin_scale = var4.get()
-    moveline2()
+origin_scale1 = 0.00
+def scale_selection1():
+    global origin_scale1
+    global time_sp 
+    global time_tp
+    #根据sp时间调整频谱图位置：
+    offset1 = round((time_sp - origin_scale1)*200)
+    if offset1 > 0:
+        pageup1(offset1)
+    elif offset1 < 0:
+        pagedown1(-offset1)
+    origin_scale1 = time_sp
+    
+origin_scale2 = 0.00
+def scale_selection2():
+    global origin_scale2
+    global time_tp 
+    global time_sp
+    #根据tp时间调整频谱图位置：
+    offset2 = round((time_tp - origin_scale2)*200)
+    #print(time_tp,origin_scale2,(time_tp-origin_scale2)*200,offset2)
+    if offset2 > 0:
+        pageup2(offset2)
+    elif offset2 < 0:
+        pagedown2(-offset2)
+    origin_scale2 = time_tp
     
 #设定函数，可以用键盘上下左右键控制评估线的移动：
 #0.005s对应1像素，所以0.1s对应20像素：
 #上下键每次移动0.1s，左右键每次移动0.005s：
-def moveline1(event):  # 绑定方向键
-    global var4
-    if event.keysym == "Up":
-        canvas1.move(line1,20,0) # 移动的是 ID为line1的事物【move（2,0,-5）则移动ID为2的事物】，使得横坐标加0，纵坐标减5
-        var4.set(var4.get()+0.1)
-        moveline2()
-    elif event.keysym == "Down":
-        canvas1.move(line1,-20,0)
-        var4.set(var4.get()-0.1)
-        moveline2()
-    elif event.keysym == "Left":            
-        canvas1.move(line1,-1,0) 
-        var4.set(var4.get()-0.005) 
-        moveline2()          
-    elif event.keysym == "Right":            
-        canvas1.move(line1,1,0)
-        var4.set(var4.get()+0.005) 
-        moveline2()
-#绑定方向键与函数
-canvas1.bind_all("<KeyPress-Up>",moveline1) 
-canvas1.bind_all("<KeyPress-Down>",moveline1)
-canvas1.bind_all("<KeyPress-Left>",moveline1)
-canvas1.bind_all("<KeyPress-Right>",moveline1)
+def moveline(event):  # 绑定方向键
+    global pause1
+    global pause2
+    global time_sp
+    global time_tp
+    global OFFSET1
+    global OFFSET2
+    if pause1 == True:
+        if event.keysym == "Up":
+            time_sp += 5
+            OFFSET1 += 5
+        elif event.keysym == "Down":
+            time_sp -= 5
+            OFFSET1 -= 5
+        elif event.keysym == "Left":
+            time_sp -= 0.05
+            OFFSET1 -= 0.05
+        elif event.keysym == "Right":
+            time_sp += 0.05
+            OFFSET1 += 0.05
+        sp_index = binary_search(match_sp,time_sp)
+        time_tp = float(match1[sp_index][1])
+        scale_selection1()
+        scale_selection2()
 
+    elif pause2 == True:
+        if event.keysym == "Up":
+            time_tp += 5
+            OFFSET2 += 5
+        elif event.keysym == "Down":
+            time_tp -= 5
+            OFFSET2 -= 5
+        elif event.keysym == "Left":
+            time_tp -= 0.05
+            OFFSET2 -= 0.05
+        elif event.keysym == "Right":
+            time_tp += 0.05
+            OFFSET2 += 0.05
+        tp_index = binary_search(match_tp,time_tp)
+        time_sp = float(match2[tp_index][1])
+        scale_selection1()
+        scale_selection2()
+    else:
+        pass
+    S1.set(time_sp)
+    S2.set(time_tp)
+    
+#绑定方向键与函数
+canvas1.bind_all("<KeyPress-Up>",moveline) 
+canvas1.bind_all("<KeyPress-Down>",moveline)
+canvas1.bind_all("<KeyPress-Left>",moveline)
+canvas1.bind_all("<KeyPress-Right>",moveline)
+canvas2.bind_all("<KeyPress-Up>",moveline) 
+canvas2.bind_all("<KeyPress-Down>",moveline)
+canvas2.bind_all("<KeyPress-Left>",moveline)
+canvas2.bind_all("<KeyPress-Right>",moveline)
 #与match相关的Button
 B4 = tk.Button(frame2,text='开始评估!',bg='blue',command=load_match).place(anchor='w',x=1300,y=210) 
-B5 = tk.Button(frame2,text='手动设置时间点',bg='blue',command=set_match).place(anchor='w',x=1300,y=250) 
-#canvas1.move(line1,1000,0)
-#canvas2.move(line2,k,0)
+B5 = tk.Button(frame2,text='手动设置sp时间点',bg='blue',command=set_match1).place(anchor='w',x=1300,y=250) 
+B6 = tk.Button(frame2,text='手动设置tp时间点',bg='blue',command=set_match2).place(anchor='w',x=1300,y=350) 
 
-#Entry1 用来手动键入match时间点：
-E1 = tk.Entry(frame2,show=None,font=('Arial',18),text='请键入float数字时间点')     
+#Entry1,2 用来手动键入scale时间点：
+E1 = tk.Entry(frame2,show=None,font=('Arial',18),text='请键入float数字时间点',width=15)
+E2 = tk.Entry(frame2,show=None,font=('Arial',18),text='请键入float数字时间点',width=15)        
 #放置一个用来调节match时间点的Scale,digits代表现实的位数，variable绑定变量，移动scale将触发函数scale_selection：        
-var4 = tk.DoubleVar()   
-S1 = tk.Scale(frame2,from_=0.000,to=1000.000,digits=8,variable=var4,orient='vertical',resolution=0.005,command=scale_selection)
-
-#根据line1的位置调整line2 match后的对应位置：
-origin_tp_value = 0.00
-def moveline2():
-    global origin_tp_value 
-#if var4.get() != 0:
-    scale = var4.get()
-    sp_index = binary_search(match_sp,scale)
-    tp_value = float(match[sp_index][1])
-    #0.005s对应1像素，所以1s对应200像素：
-    offset = (tp_value - origin_tp_value)*200
-    canvas2.move(line2,offset,0)
-    origin_tp_value = tp_value
+var4 = tk.DoubleVar() 
+var5 = tk.DoubleVar()   
+S1 = tk.Scale(frame2,width=13,from_=0.000,to=1000.000,digits=8,variable=var4,orient='vertical',resolution=0.001,command=set_scale1)
+S2 = tk.Scale(frame2,width=13,from_=0.000,to=1000.000,digits=8,variable=var5,orient='vertical',resolution=0.001,command=set_scale2)
        
-#将E1和S1的放置语句写到最后，避免出现NoneType Error:
-E1.place(anchor='w',x=1270,y=390)  
+#将E1,E2和S1,S2的放置语句写到最后，避免出现NoneType Error:
+E1.place(anchor='w',x=1300,y=300)  
+E2.place(anchor='w',x=1300,y=400) 
+#放置scale1，2， 1在左2在右，1代表sp2代表tp：
+S2.pack(side='right',fill='y')
 S1.pack(side='right',fill='y')
-
 
 """
 Happy Endding
 """
-#放置logo在左上角：
-#logo = Image.open('logo.png')
-#
-#logo = ImageTk.PhotoImage(logo.resize((25,25)))
-#canvas_logo = tk.Canvas(window,width=55,height=55)
-#image_logo = canvas_logo.create_image(20,20,image=logo)
-#canvas_logo.pack(side='left',expand=False)
+#放置scrollbar-- hbar1 & hbar2至窗口底部，并铺满整个x轴:
+hbar2.pack(side='bottom',fill='x')
+hbar1.pack(side='bottom',fill='x')
+#最后再放置canvas1&2， 防止出现NoneType has no attribute XXX Error:
+canvas1.place(anchor='w',x=350,y=340)
+canvas2.place(anchor='w',x=350,y=690)
 
+#start the mainloop:
 window.mainloop()
 

@@ -103,12 +103,12 @@ List2_2 = ttk.Combobox(frame2,textvariable=list2_2,width=5)
 list1_items = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
 #darkness: 0--9 频谱图深浅
 list2_items = [0,1,2,3,4,5,6,7,8,9]
-
+#赋值：
 List1_1['values'] = list1_items
 List2_1['values'] = list1_items
 List1_2['values'] = list2_items
 List2_2['values'] = list2_items
-#默认为选择最后一个（第九个）
+#默认为选择最后一个（threshold--1,darklness--9）:
 List1_1.current(9)
 List1_2.current(9)
 List2_1.current(9)
@@ -586,17 +586,12 @@ def generate_specgram2():
     canvas2.config(scrollregion=(0,0,length2,8000))
     tempImage2 = tk.PhotoImage(file = filename3+'/'+img2)
     canvas2.create_image(450, 194,anchor='w',image=tempImage2)
-#    canvas2.show()
-#    canvas2.FigureCanvasTkAgg(tempImage2,master=frame2)
 
 #用于生成频谱图的两个按钮：
 B_sp = tk.Button(frame1,text = "绘制SP频谱图",command=generate_specgram1)
 B_tp = tk.Button(frame2,text = "绘制TP频谱图",command=generate_specgram2)
 B_sp.place(anchor='w',x=250,y=250)
 B_tp.place(anchor='w',x=250,y=600)
-#canvas1.bind('<Button-1>',specgram1)
-#canvas2.bind('<KeyPress-p>',specgram2)
-
 
 """
 Match部分

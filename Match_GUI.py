@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Header:
+    
 Musicpp Matching Evaluation Engine
+
+We developed a new multiple-spectrogram-alignment algorithms based on 
+the Sonic Visualizer matching plugin. In order to evaluate the accuracy 
+of this match results, an Evaluation Engine is built with the help of 
+Tkinter.  The Matching algorithm will be uploaded separately.
 
 @author: alex.Geng  brother.Nan
 """
@@ -9,14 +16,15 @@ Musicpp Matching Evaluation Engine
 import tkinter as tk
 import pygame.mixer as mixer
 import tkinter.filedialog
+import tkinter.messagebox 
+from  tkinter  import ttk
 import app
-import numpy as np
 from PIL import Image, ImageTk, ImageGrab 
 import threading
 import time
 
 """
-主体部分
+主体部分(Main Structure)
 """
 
 window = tk.Tk()
@@ -35,9 +43,9 @@ frame2 = tk.Frame(frame,width=1500,height=200).pack(side='bottom',fill='x',expan
 
 #设定字符变量var1，var2
 var1 = tk.StringVar()
-var1.set('请选择wav文件')
+var1.set('请选择threshold和strength')
 var2 = tk.StringVar()
-var2.set('请选择wav文件')
+var2.set('请选择threshold和strength')
 #设定label-L2 ，L3，用来显示var1,var2的信息
 L2 = tk.Label(frame1, textvariable=var1,bg='blue',fg='white',font=('Arial',10),width=35,height=5).place(anchor='e',x=350,y=300)
 L3 = tk.Label(frame2, textvariable=var2,bg='blue',fg='white',font=('Arial',10),width=35,height=5).place(anchor='e',x=350,y=650)
@@ -79,18 +87,70 @@ def binary_search(array,t):
         return array.index(array[low])
     else:
         pass
-    
+
+#放置listbox，用于选择频谱图的threshold和darkness：
+list1_1 = tk.StringVar()
+list1_2 = tk.StringVar()
+list2_1 = tk.StringVar()
+list2_2 = tk.StringVar()
+List1_1 = ttk.Combobox(frame1,textvariable=list1_1,width=5)
+List1_2 = ttk.Combobox(frame1,textvariable=list1_2,width=5)
+List2_1 = ttk.Combobox(frame2,textvariable=list2_1,width=5)   
+List2_2 = ttk.Combobox(frame2,textvariable=list2_2,width=5)
+#threshold: 0.1--1 根据能量值高低过滤多余音符
+list1_items = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+#darkness: 0--9 频谱图深浅
+list2_items = [0,1,2,3,4,5,6,7,8,9]
+
+List1_1['values'] = list1_items
+List2_1['values'] = list1_items
+List1_2['values'] = list2_items
+List2_2['values'] = list2_items
+#默认为选择最后一个（第九个）
+List1_1.current(9)
+List1_2.current(9)
+List2_1.current(9)
+List2_2.current(9)
+#默认的threshold为1，darkness为9:
+threshold1 = 1
+darkness1 = 9
+threshold2 = 1
+darkness2 = 9
+#绑定的下拉框值选择函数，*args表示可变参数：
+def combox_select1_1(*args):
+    global threshold1
+    threshold1 = float(List1_1.get())
+def combox_select1_2(*args):
+    global strength1
+    darkness1 = int(List1_2.get())
+def combox_select2_1(*args):
+    global threshold2
+    threshold2 = float(List2_1.get())
+def combox_select2_2(*args):
+    global strength2
+    darkness2 = int(List2_2.get())
+#下拉框与相关函数的绑定：
+List1_1.bind("<<ComboboxSelected>>",combox_select1_1)
+List1_2.bind("<<ComboboxSelected>>",combox_select1_2)
+List2_1.bind("<<ComboboxSelected>>",combox_select2_1)
+List2_2.bind("<<ComboboxSelected>>",combox_select2_2)
+#放置下拉框，threshold在左，darkness在右
+List1_1.place(anchor='w',x=200,y=170)
+List1_2.place(anchor='w',x=275,y=170)
+List2_1.place(anchor='w',x=200,y=520)
+List2_2.place(anchor='w',x=275,y=520)
+"""    
 #input函数用于导入音频文件,由用户选择文件，然后该函数获得文件的路径，将路径存储为filename1和filename2：
 def input_wav1():
     global filename1
-    filename1 = tk.filedialog.askopenfilename()
+    filename1 = tk.filedialog.askdirectory()
     if filename1 != '':
         var1.set("文件加载成功")
     else:
         var1.set("您没有选择任何文件")
 def input_wav2():
     global filename2
-    filename2 = tk.filedialog.askopenfilename()
+    filename2 = tk.filedialog.askdirectory()
     if filename2 != '':
         var2.set("文件加载成功")
     else:
@@ -99,12 +159,13 @@ def input_wav2():
 #两个Button用于导入音频文件：       
 B1 = tk.Button(frame1,text='请选择sp_wav文件',command=input_wav1).place(anchor='w',x=200,y=170)
 B2 = tk.Button(frame2,text='请选择tp_wav文件',command=input_wav2).place(anchor='w',x=200,y=520)
+"""
 
 """
 Zoom
 """
-#I hope u will never use this function
-class LoadImage: 
+#I hope u will never use this function. Just in case you have a very poor eyesight.
+class LoadImage(): 
     def __init__(self,root): 
      frame = tk.Frame(root) 
      self.canvas = tk.Canvas(frame,width=1800,height=2000,scrollregion=(0,0,3500,2000)) 
@@ -152,12 +213,13 @@ class LoadImage:
       self.zimg = ImageTk.PhotoImage(tmp.resize(size)) 
       self.zimg_id = self.canvas.create_image(event.x,event.y,image=self.zimg) 
 def zoom():
+    #使用tk.Toplevel而不是tk.Tk,将可以避免出现canvas中的图像不显示的问题：
     root = tk.Toplevel()
     root.geometry('1800x1000')
     cut = ImageGrab.grab()
     cut.save('cut.png')
     root.title("Crop Test") 
-    App = LoadImage(root)
+    LoadImage(root)
     root.mainloop() 
     
 """
@@ -200,7 +262,7 @@ window.config(menu=menubar)
 
 
 """
-设置音频播放
+设置音频播放(Mp3 Player)
 """
 #初始化播放环境：
 mixer.init()
@@ -245,7 +307,7 @@ def track_start1():
     global timer1
     global is_sp_play
     is_sp_play = True
-    mixer.music.load(filename1.strip('.wav')+'.mp3')
+    mixer.music.load(filename3+'/sp.mp3')
     #播放：
     mixer.music.play(0)
     #启动定时器程序：
@@ -343,7 +405,7 @@ def track_start2():
     global timer2
     global is_tp_play
     is_tp_play = True
-    mixer.music.load(filename2.strip('.wav')+'.mp3')
+    mixer.music.load(filename3+'/tp.mp3')
     #播放：
     mixer.music.play(0)
     #启动定时器程序：
@@ -421,7 +483,7 @@ def switch():
         pause1 = False
         is_tp_play = True
         #重新load文件并播放，将会归零get_pos()的返回值，所以这里把time_tp的时间作为OFFSET2保存：
-        mixer.music.load(filename2.strip('.wav')+'.mp3')
+        mixer.music.load(filename3+'/tp.mp3')
         mixer.music.play(0,time_tp)
         #不要忘记重启计时器：
         timer2 = threading.Timer(0.1, fun_timer2)
@@ -430,7 +492,7 @@ def switch():
         OFFSET1 = time_sp
         pause2 = False
         is_sp_play = True
-        mixer.music.load(filename1.strip('.wav')+'.mp3')
+        mixer.music.load(filename3+'/sp.mp3')
         mixer.music.play(0,time_sp)
         timer1 = threading.Timer(0.1, fun_timer1)
         timer1.start()
@@ -441,7 +503,7 @@ def switch():
 switch_button = tk.Button(frame2,font=('Arial',18),width=7,height=2,command = switch,text = "切换",bg='green',fg='blue',relief='raised', bd=3)
 switch_button.place(anchor='w',x=200,y=410)
 """
-频谱图部分
+频谱图部分(Spectrogram)
 """
 
 #sp频谱图画布 canvas1:
@@ -464,31 +526,31 @@ img2 = 'tp.png'
 length1 = 0.0
 def generate_specgram1():
     global img1
-    global filename1
+    global filename3
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
     global tempImage1
     global length1
-    showpic = app.Draw_pic(filename1,img1)
+    showpic = app.Draw_pic(filename3,img1)
     #threshold:0-1; darkness:0-9
-    length1 = showpic.energypic(1,9)
+    length1 = showpic.energypic(threshold1,darkness1)
     #根据频谱图的长度调整canvas的窗口长度
     canvas1.config(scrollregion=(0,0,length1,8000))
-    tempImage1 = tk.PhotoImage(file = img1)
+    tempImage1 = tk.PhotoImage(file = filename3+'/'+img1)
     canvas1.create_image(450, 194,anchor='w',image=tempImage1)
 #    canvas1.show()
 #    canvas1.FigureCanvasTkAgg(tempImage1,master=frame1)
     
 def generate_specgram2():
     global img2
-    global filename2
+    global filename3
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
     global tempImage2
     global length2
-    showpic = app.Draw_pic(filename2,img2)
-    length2 = showpic.energypic(1,9)
+    showpic = app.Draw_pic(filename3,img2)
+    length2 = showpic.energypic(threshold2,darkness2)
     #根据频谱图的长度调整canvas的窗口长度
     canvas2.config(scrollregion=(0,0,length2,8000))
-    tempImage2 = tk.PhotoImage(file = img2)
+    tempImage2 = tk.PhotoImage(file = filename3+'/'+img2)
     canvas2.create_image(450, 194,anchor='w',image=tempImage2)
 #    canvas2.show()
 #    canvas2.FigureCanvasTkAgg(tempImage2,master=frame2)
@@ -506,15 +568,15 @@ B_tp.place(anchor='w',x=200,y=600)
 Match部分
 """
 
-#match文件的默认地址：
-filename3 = 'match.csv'
+#match和音频文件的默认地址：
+filename3 = '/Users/alex/Desktop/work/Test_madmom/match_test_data/test/GUI/tschaikovsky_cut1'
 
 var3 = tk.StringVar()
-var3.set('请选择match.csv文件')
+var3.set('请选择match文件夹')
 #导入match数据：
 def input_csv():
     global filename3
-    filename3 = tk.filedialog.askopenfilename()
+    filename3 = tk.filedialog.askdirectory()
     if filename3 != '':
         var3.set("文件加载成功")
     else:
@@ -523,7 +585,7 @@ def input_csv():
 #提示导入match文件并显示其路径：        
 L4 = tk.Label(frame2, textvariable=var3,bg='blue',fg='white',font=('Arial',10),width=35,height=5).place(anchor='w',x=1270,y=460)
 #放置按钮来实现input_csv功能：
-B3 = tk.Button(frame2,text='请选择match.csv文件',bg='blue',command=input_csv).place(anchor='w',x=1300,y=170)
+B3 = tk.Button(frame2,text='请选择match文件',bg='blue',command=input_csv).place(anchor='w',x=1300,y=170)
 
 #设定函数，让 line1 和 line2 能随着match的数据在x方向上平移：
 match1=[]
@@ -537,10 +599,10 @@ def load_match():
     global canvas3
     #根据filename3所制定的路径打开match文件并保存到列表match中，match是一个N*2的二维列表，每一行的第一个str表示sp的时间，第二个str表示tp的时间：
     #match1对应sp在前的文件，match2对应tp在前的文件：
-    with open(filename3,'r') as f:
+    with open(filename3+'/match.csv','r') as f:
         for line in f.readlines():
             match1.append(line.strip('\n').split(','))
-    with open(filename3.strip('.csv')+'_reverse.csv','r') as g:
+    with open(filename3+'/match_reverse.csv','r') as g:
         for line in g.readlines():
             match2.append(line.strip('\n').split(','))
     #将sp，tp的时间点分别保存为一维list，方便之后进行binary search：
@@ -729,6 +791,11 @@ S1.pack(side='right',fill='y')
 """
 Happy Endding
 """
+
+#显示开发者信息：
+def info():
+    tkinter.messagebox.showinfo(title='Developer Info', message='Develops:\n\n Alex.Geng\tEmail: gengaoxiang@musicpp.com\n\n Brother.Nan\tEmail: renzhennan@musicpp.com')  
+B7 = tk.Button(frame2,text='显示开发者信息',bg='blue',command=info).place(anchor='w',x=1300,y=530)
 #放置scrollbar-- hbar1 & hbar2至窗口底部，并铺满整个x轴:
 hbar2.pack(side='bottom',fill='x')
 hbar1.pack(side='bottom',fill='x')

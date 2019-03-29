@@ -22,6 +22,8 @@ import app
 from PIL import Image, ImageTk, ImageGrab 
 import threading
 import time
+import cv2 
+ 
 
 """
 主体部分(Main Structure)
@@ -121,13 +123,13 @@ def combox_select1_1(*args):
     global threshold1
     threshold1 = float(List1_1.get())
 def combox_select1_2(*args):
-    global strength1
+    global darkness1
     darkness1 = int(List1_2.get())
 def combox_select2_1(*args):
     global threshold2
     threshold2 = float(List2_1.get())
 def combox_select2_2(*args):
-    global strength2
+    global darkness2
     darkness2 = int(List2_2.get())
 #下拉框与相关函数的绑定：
 List1_1.bind("<<ComboboxSelected>>",combox_select1_1)
@@ -366,11 +368,11 @@ def pagedown1(n):
 #sp命名为track1：
 #track1 = mixer.music.load(filename1)
 #用于sp的 播放，停止，暂停三个按钮：
-start_button1 = tk.Button(frame1,command = track_start1,text = "Start")
+start_button1 = tk.Button(frame1,command = track_start1,text = "Start/播放")
 start_button1.place(anchor='w',x=200,y=190)
-stop_button1 = tk.Button(frame1,command = track_stop1,text = "Stop")
+stop_button1 = tk.Button(frame1,command = track_stop1,text = "Stop/停止")
 stop_button1.place(anchor='w',x=200,y=210)
-pause_button1 = tk.Button(frame1,command = track_pause1,text = "Pause")
+pause_button1 = tk.Button(frame1,command = track_pause1,text = "Pause/Unpause")
 pause_button1.place(anchor='w',x=200,y=230)
 
 #设定定时器,用于实现tkinter的动态更新，只要开始播放音频文件，就会每隔0.01秒获取一次音频的播放时间点（这一句要考！）：
@@ -462,11 +464,11 @@ def pagedown2(n):
 #tp命名为track2：
 #track2 = mixer.music.load(filename2)
 #用于tp的 播放，停止，暂停三个按钮：
-start_button2 = tk.Button(frame2,command = track_start2,text = "Start")
+start_button2 = tk.Button(frame2,command = track_start2,text = "Start/播放")
 start_button2.place(anchor='w',x=200,y=540)
-stop_button2 = tk.Button(frame2,command = track_stop2,text = "Stop")
+stop_button2 = tk.Button(frame2,command = track_stop2,text = "Stop/停止")
 stop_button2.place(anchor='w',x=200,y=560)
-pause_button2 = tk.Button(frame2,command = track_pause2,text = "Pause")
+pause_button2 = tk.Button(frame2,command = track_pause2,text = "Pause/Unpause")
 pause_button2.place(anchor='w',x=200,y=580)
 
 #switch函数用于sp与tp之间的播放切换：
@@ -502,6 +504,17 @@ def switch():
 #switch按钮用于sp与tp之间的播放切换：
 switch_button = tk.Button(frame2,font=('Arial',18),width=7,height=2,command = switch,text = "切换",bg='green',fg='blue',relief='raised', bd=3)
 switch_button.place(anchor='w',x=200,y=410)
+
+#将空格键和暂停pause/unpause绑定：
+def space(spc):
+    if is_sp_play == True or pause1 == True:
+        track_pause1()
+    elif is_tp_play == True or pause2 == True:
+        track_pause2()
+    else:
+        pass
+    
+window.bind_all('<space>',space)
 """
 频谱图部分(Spectrogram)
 """
@@ -518,7 +531,13 @@ hbar2 = tk.Scrollbar(frame2,orient='horizontal',bd=0)
 hbar2.config(command=canvas2.xview)
 canvas2.config(xscrollcommand=hbar2.set)
 
-
+#放置两个CheckButton，让用户选择是否重新绘制频谱图，还是使用之前画好的图片：
+CheckVar1 = tk.IntVar()
+CheckVar2 = tk.IntVar()
+Check1 = tk.Checkbutton(frame1,text='使用现有图片？',variable=CheckVar1,onvalue=1,offvalue=0,height=1,width=12)
+Check2 = tk.Checkbutton(frame2,text='使用现有图片？',variable=CheckVar2,onvalue=1,offvalue=0,height=1,width=12)
+Check1.place(anchor='w',x=130,y=250)
+Check2.place(anchor='w',x=130,y=600)
 #生成的频谱图将以默认的名字 img1&img2 保存在当前目录下：
 img1 = 'sp.png'
 img2 = 'tp.png'
@@ -530,9 +549,16 @@ def generate_specgram1():
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
     global tempImage1
     global length1
-    showpic = app.Draw_pic(filename3,img1)
-    #threshold:0-1; darkness:0-9
-    length1 = showpic.energypic(threshold1,darkness1)
+    if CheckVar1 == 0:
+        #用户选择重新绘制：
+        showpic = app.Draw_pic(filename3,img1)
+        #threshold:0-1; darkness:0-9
+        length1 = showpic.energypic(threshold1,darkness1)
+    else:
+        #用户选择使用现有图片：
+        temp = cv2.imread(filename3+"/"+img1)
+        temp = temp.shape
+        length1 = temp[1]
     #根据频谱图的长度调整canvas的窗口长度
     canvas1.config(scrollregion=(0,0,length1,8000))
     tempImage1 = tk.PhotoImage(file = filename3+'/'+img1)
@@ -546,8 +572,16 @@ def generate_specgram2():
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
     global tempImage2
     global length2
-    showpic = app.Draw_pic(filename3,img2)
-    length2 = showpic.energypic(threshold2,darkness2)
+    if CheckVar2 == 0:
+        #用户选择重新绘制：
+        showpic = app.Draw_pic(filename3,img2)
+        #threshold:0-1; darkness:0-9
+        length2 = showpic.energypic(threshold2,darkness2)
+    else:
+        #用户选择使用现有图片：
+        temp = cv2.imread(filename3+"/"+img2)
+        temp = temp.shape
+        length2 = temp[1]
     #根据频谱图的长度调整canvas的窗口长度
     canvas2.config(scrollregion=(0,0,length2,8000))
     tempImage2 = tk.PhotoImage(file = filename3+'/'+img2)
@@ -556,10 +590,10 @@ def generate_specgram2():
 #    canvas2.FigureCanvasTkAgg(tempImage2,master=frame2)
 
 #用于生成频谱图的两个按钮：
-B_sp = tk.Button(frame1,text = "绘制",command=generate_specgram1)
-B_tp = tk.Button(frame2,text = "绘制",command=generate_specgram2)
-B_sp.place(anchor='w',x=200,y=250)
-B_tp.place(anchor='w',x=200,y=600)
+B_sp = tk.Button(frame1,text = "绘制SP频谱图",command=generate_specgram1)
+B_tp = tk.Button(frame2,text = "绘制TP频谱图",command=generate_specgram2)
+B_sp.place(anchor='w',x=250,y=250)
+B_tp.place(anchor='w',x=250,y=600)
 #canvas1.bind('<Button-1>',specgram1)
 #canvas2.bind('<KeyPress-p>',specgram2)
 

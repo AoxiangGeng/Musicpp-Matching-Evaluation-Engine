@@ -3,7 +3,7 @@
 """
 Header:
     
-Musicpp Matching Evaluation Engine
+Music++ Matching Evaluation Engine
 
 We developed a new multiple-spectrogram-alignment algorithms based on 
 the Sonic Visualizer matching plugin. In order to evaluate the accuracy 

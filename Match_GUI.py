@@ -23,6 +23,8 @@ from PIL import Image, ImageTk, ImageGrab
 import threading
 import time
 import cv2 
+import os
+import sys
 
 """
 主体部分(Main Structure)
@@ -514,6 +516,7 @@ def space(spc):
         pass
     
 window.bind_all('<space>',space)
+
 """
 频谱图部分(Spectrogram)
 """
@@ -862,6 +865,16 @@ hbar1.pack(side='bottom',fill='x')
 #最后再放置canvas1&2， 防止出现NoneType has no attribute XXX Error:
 canvas1.place(anchor='w',x=350,y=340)
 canvas2.place(anchor='w',x=350,y=690)
+
+#设置一个重启函数：
+def restart_program():
+    """Restarts the current program.
+    Note: this function does not return. Any cleanup action (like
+    saving data) must be done before calling this function."""
+    python = sys.executable
+    os.execl(python, python, * sys.argv)
+#放置重启按钮在开发者信息按钮下方：  
+ButtonRestart = tk.Button(frame2,text='重启/Restart',command=restart_program,bg='blue').place(anchor='w',x=1300,y=600)
 
 #start the mainloop:
 window.mainloop()

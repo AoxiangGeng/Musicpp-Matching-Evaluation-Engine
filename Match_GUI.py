@@ -770,7 +770,7 @@ def scale_selection2():
     
 #设定函数，可以用键盘上下左右键控制评估线的移动：
 #0.005s对应1像素，所以0.1s对应20像素：
-#上下键每次移动0.1s，左右键每次移动0.005s：
+#上下键每次移动0.5s，左右键每次移动0.005s：
 def moveline(event):  # 绑定方向键
     global pause1
     global pause2
@@ -780,11 +780,11 @@ def moveline(event):  # 绑定方向键
     global OFFSET2
     if pause1 == True:
         if event.keysym == "Up":
-            time_sp += 5
-            OFFSET1 += 5
+            time_sp += 0.5
+            OFFSET1 += 0.5
         elif event.keysym == "Down":
-            time_sp -= 5
-            OFFSET1 -= 5
+            time_sp -= 0.5
+            OFFSET1 -= 0.5
         elif event.keysym == "Left":
             time_sp -= 0.05
             OFFSET1 -= 0.05
@@ -798,11 +798,11 @@ def moveline(event):  # 绑定方向键
 
     elif pause2 == True:
         if event.keysym == "Up":
-            time_tp += 5
-            OFFSET2 += 5
+            time_tp += 0.5
+            OFFSET2 += 0.5
         elif event.keysym == "Down":
-            time_tp -= 5
-            OFFSET2 -= 5
+            time_tp -= 0.5
+            OFFSET2 -= 0.5
         elif event.keysym == "Left":
             time_tp -= 0.05
             OFFSET2 -= 0.05

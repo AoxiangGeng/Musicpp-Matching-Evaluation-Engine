@@ -138,10 +138,10 @@ List1_2.bind("<<ComboboxSelected>>",combox_select1_2)
 List2_1.bind("<<ComboboxSelected>>",combox_select2_1)
 List2_2.bind("<<ComboboxSelected>>",combox_select2_2)
 #放置下拉框，threshold在左，darkness在右
-List1_1.place(anchor='w',x=200,y=170)
-List1_2.place(anchor='w',x=275,y=170)
-List2_1.place(anchor='w',x=200,y=520)
-List2_2.place(anchor='w',x=275,y=520)
+List1_1.place(anchor='w',x=155,y=165)
+List1_2.place(anchor='w',x=250,y=165)
+List2_1.place(anchor='w',x=155,y=515)
+List2_2.place(anchor='w',x=250,y=515)
 """    
 #input函数用于导入音频文件,由用户选择文件，然后该函数获得文件的路径，将路径存储为filename1和filename2：
 def input_wav1():
@@ -642,6 +642,7 @@ def input_csv():
     filename3 = tk.filedialog.askdirectory()
     if filename3 != '':
         var3.set("文件加载成功")
+        print('\n文件地址:\n'+filename3)
     else:
         var3.set("您没有选择任何文件")
         
@@ -875,6 +876,20 @@ def restart_program():
     os.execl(python, python, * sys.argv)
 #放置重启按钮在开发者信息按钮下方：  
 ButtonRestart = tk.Button(frame2,text='重启/Restart',command=restart_program,bg='blue').place(anchor='w',x=1300,y=600)
+
+#放置logo：
+Logo = tk.PhotoImage(file='logo.png')
+canvas_logo = tk.Canvas(frame2,width=150,height=150)
+canvas_logo.create_image(0,75,anchor='w',image=Logo)
+canvas_logo.place(anchor='w',x=1300,y=750)
+
+#定义打印时间函数：
+def print_time():
+    print('\nSP时间点为:   ',time_sp)
+    print('\tTP时间点为:   ',time_tp)
+#放置打印时间按钮：
+B8 = tk.Button(frame2,text='打印时间信息',font=('Arial',18),width=14,height=2,bg='blue',command=print_time)
+B8.place(anchor='w',x=165,y=750)
 
 #start the mainloop:
 window.mainloop()

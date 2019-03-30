@@ -23,7 +23,6 @@ from PIL import Image, ImageTk, ImageGrab
 import threading
 import time
 import cv2 
- 
 
 """
 主体部分(Main Structure)
@@ -536,20 +535,21 @@ CheckVar1 = tk.IntVar()
 CheckVar2 = tk.IntVar()
 Check1 = tk.Checkbutton(frame1,text='使用现有图片？',variable=CheckVar1,onvalue=1,offvalue=0,height=1,width=12)
 Check2 = tk.Checkbutton(frame2,text='使用现有图片？',variable=CheckVar2,onvalue=1,offvalue=0,height=1,width=12)
-Check1.place(anchor='w',x=130,y=250)
-Check2.place(anchor='w',x=130,y=600)
 #生成的频谱图将以默认的名字 img1&img2 保存在当前目录下：
 img1 = 'sp.png'
 img2 = 'tp.png'
 #用于生成频谱图的函数
 length1 = 0.0
+length2 = 0.0
 def generate_specgram1():
+    #必须将PhotoImage指定的tempImage声明为全局变量，否则h函数中绘制的图片在canvas中将不会被显示，这是tkinter的一个坑！
     global img1
     global filename3
-    #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
-    global tempImage1
     global length1
-    if CheckVar1 == 0:
+    global names1
+    #names1用来动态生成变量
+    names1 = locals()
+    if CheckVar1.get() == 0:
         #用户选择重新绘制：
         showpic = app.Draw_pic(filename3,img1)
         #threshold:0-1; darkness:0-9
@@ -560,19 +560,35 @@ def generate_specgram1():
         temp = temp.shape
         length1 = temp[1]
     #根据频谱图的长度调整canvas的窗口长度
-    canvas1.config(scrollregion=(0,0,length1,8000))
-    tempImage1 = tk.PhotoImage(file = filename3+'/'+img1)
-    canvas1.create_image(450, 194,anchor='w',image=tempImage1)
-#    canvas1.show()
-#    canvas1.FigureCanvasTkAgg(tempImage1,master=frame1)
-    
+    canvas1.config(scrollregion=(0,0,length1,length1))
+    tempImage = cv2.imread(filename3+"/"+img1)
+    #判断图片的长度是否超过30000像素，因为tk.PhotoImage最大只能导入30000x30000像素的图片：
+    #所以如果图片的尺寸超过了30000像素，就将其截开，然后分别导入canvas拼接成完整的频谱图：
+    n = length1//30000
+    for i in range(n+1):
+        if (i+1)*30000 < length1:
+            #使用openCV对图片进行截取：
+            cropImg = tempImage[:,i*30000:(i+1)*30000,:]
+            #将截取的片段保存为temp.png，后面保存的png会覆盖之前的，因此不会占用太多空间
+            cv2.imwrite(filename3+'/temp.png',cropImg)
+            #读取截取片段并用tk.PhotoImage实例化，变量名为names['tempImagei']，i随着for循环递增,并且已被声明为全局变量：
+            names1['tempImage'+str(i)]=tk.PhotoImage(file = filename3+'/temp.png')
+            canvas1.create_image(450+i*30000,194,anchor='w',image=names1['tempImage'+str(i)])
+        else:
+            #最后一个片段只需要截到length1，而不是(i+1)*30000:
+            cropImg = tempImage[:,i*30000:length1,:]
+            cv2.imwrite(filename3+'/temp.png',cropImg)
+            names1['tempImage'+str(i)] = tk.PhotoImage(file = filename3+'/temp.png')
+            canvas1.create_image(450+i*30000,194,anchor='w',image=names1['tempImage'+str(i)])
+                    
 def generate_specgram2():
     global img2
     global filename3
     #必须将PhotoImage指定的tempImage声明为全局变量，否则图片在canvas中将不会被显示
-    global tempImage2
     global length2
-    if CheckVar2 == 0:
+    global names2
+    names2 = locals()
+    if CheckVar2.get() == 0:
         #用户选择重新绘制：
         showpic = app.Draw_pic(filename3,img2)
         #threshold:0-1; darkness:0-9
@@ -583,16 +599,31 @@ def generate_specgram2():
         temp = temp.shape
         length2 = temp[1]
     #根据频谱图的长度调整canvas的窗口长度
-    canvas2.config(scrollregion=(0,0,length2,8000))
-    tempImage2 = tk.PhotoImage(file = filename3+'/'+img2)
-    canvas2.create_image(450, 194,anchor='w',image=tempImage2)
-
+    canvas2.config(scrollregion=(0,0,length2,length2))  
+    tempImage = cv2.imread(filename3+"/"+img2)
+    #判断图片的长度是否超过30000像素：
+    n = length2//30000
+    for j in range(n+1):
+        if (j+1)*30000 < length2:
+            cropImg = tempImage[:,j*30000:(j+1)*30000,:]
+            cv2.imwrite(filename3+'/temp.png',cropImg)
+            names2['tempImage'+str(j)]=tk.PhotoImage(file = filename3+'/temp.png')
+            canvas2.create_image(450+j*30000,194,anchor='w',image=names2['tempImage'+str(j)])
+        else:
+            cropImg = tempImage[:,j*30000:length2,:]
+            cv2.imwrite(filename3+'/temp.png',cropImg)
+            names2['tempImage'+str(j)] = tk.PhotoImage(file = filename3+'/temp.png')
+            canvas2.create_image(450+j*30000,194,anchor='w',image=names2['tempImage'+str(j)])
+                    
+                
+    
 #用于生成频谱图的两个按钮：
 B_sp = tk.Button(frame1,text = "绘制SP频谱图",command=generate_specgram1)
 B_tp = tk.Button(frame2,text = "绘制TP频谱图",command=generate_specgram2)
 B_sp.place(anchor='w',x=250,y=250)
 B_tp.place(anchor='w',x=250,y=600)
-
+Check1.place(anchor='w',x=130,y=250)
+Check2.place(anchor='w',x=130,y=600)
 """
 Match部分
 """
